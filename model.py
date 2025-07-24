@@ -17,13 +17,6 @@ from torch.utils.data import DataLoader, TensorDataset
 
 
 def make_logger(name, save_dir, save_filename):
-    """
-    Make a logger to record the training process
-    :param name: logger name
-    :param save_dir: the directory to save the log file
-    :param save_filename: the filename to save the log file
-    :return: logger
-    """
     DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
