@@ -19,37 +19,6 @@ class DataReader:
         if data_set == PURCHASE100:
             path = PURCHASE100_PATH
             data_frame = pd.read_csv(path, header=None)
-            # 获取 10% 的数据集
-
-            data_frame = data_frame.sample(frac=0.1, random_state=42)  # frac=0.1 表示随机选取 10% 数据
-
-            # extract the label
-            self.labels = torch.tensor(data_frame[label_column].to_numpy(), dtype=torch.int64).to(DEVICE)
-            self.labels -= 1
-            data_frame.drop(label_column, inplace=True, axis=1)
-            # extract the data
-            self.data = torch.tensor(data_frame.to_numpy(), dtype=torch.float).to(DEVICE)
-
-        elif data_set == CIFAR_10:
-            samples = np.vstack(
-                [np.genfromtxt(CIFAR_10_PATH+"train{}.csv".format(x), delimiter=',') for x in range(4)]
-            )
-            np.random.seed(42)
-
-            # 随机选择 30% 的数据
-            num_samples = samples.shape[0]
-            indices = np.random.choice(num_samples, int(1 * num_samples), replace=False)
-
-            # 选择 30% 的数据
-            samples_selected = samples[indices]
-
-
-            self.data = torch.tensor(samples_selected[:, :-1], dtype=torch.float).to(DEVICE)
-            self.labels = torch.tensor(samples_selected[:, -1], dtype=torch.int64).to(DEVICE)
-
-        elif data_set == LOCATION30:
-            path = LOCATION30_PATH
-            data_frame = pd.read_csv(path, header=None)
             # extract the label
             self.labels = torch.tensor(data_frame[label_column].to_numpy(), dtype=torch.int64).to(DEVICE)
             self.labels -= 1
@@ -104,7 +73,6 @@ class DataReader:
             rand_perm = torch.randperm(self.labels.size(0)).to(DEVICE)
             self.reserve_set = rand_perm[overall_size:]
             print("cover dataset size is {}".format(reserved))
-
             #initialize the fl trust set
             overall_size -= fl_trust_samples
             self.fl_trust = rand_perm[overall_size+reserved:]
@@ -121,20 +89,15 @@ class DataReader:
                   " has been loaded, overall {} records, batch size = {}, testing batches: {}, training batches: {}"
                   .format(overall_size, batch_size, self.test_set.size(0), self.train_set.size(0)))
         elif distribution == DIRICHLET:
-
             self.perform_dirichlet_partition(alpha=self.dirichlet_alpha, batch_size=batch_size)
         elif distribution == LABEL_PARTITION:
             self.perform_label_partition(labels_per_client=10)
-
-
 
     def perform_dirichlet_partition(self, alpha=0.5, batch_size=BATCH_SIZE):
         num_classes = torch.max(self.labels).item() + 1
         num_clients = NUMBER_OF_PARTICIPANTS
         class_indices = [torch.where(self.labels == y)[0] for y in range(num_classes)]
-
         client_indices = [[] for _ in range(num_clients)]
-
         for c, idx in enumerate(class_indices):
             idx = idx[torch.randperm(idx.size(0))]
             proportions = np.random.dirichlet(alpha=[alpha] * num_clients)
@@ -142,92 +105,67 @@ class DataReader:
             split_indices = torch.split(idx, list(np.diff(np.concatenate(([0], proportions, [idx.size(0)])))))
             for i, split in enumerate(split_indices):
                 client_indices[i].extend(split.tolist())
-
-        # 平整化到 batch 格式
         for i in range(num_clients):
             client_data = torch.tensor(client_indices[i], dtype=torch.long).to(DEVICE)
             client_data = client_data[torch.randperm(client_data.size(0))]
-            client_data = client_data[:(len(client_data) // batch_size) * batch_size]  # 保证可整除
+            client_data = client_data[:(len(client_data) // batch_size) * batch_size] 
             batches = client_data.view(-1, batch_size)
-
             num_batches = batches.size(0)
             split_point = num_batches // 2
-
-            self.train_set.append(batches[:split_point])  # 前一半作为训练集
-            self.test_set1.append(batches[split_point:])  # 后一半作为测试集
+            self.train_set.append(batches[:split_point]) 
+            self.test_set1.append(batches[split_point:]) 
         self.test_set = torch.cat(self.test_set1, dim=0).to(DEVICE)
 
     def perform_label_partition(self, labels_per_client=2, batch_size=BATCH_SIZE):
         num_classes = torch.max(self.labels).item() + 1
         num_clients = NUMBER_OF_PARTICIPANTS
         class_indices = [torch.where(self.labels == y)[0] for y in range(num_classes)]
-
         self.train_set = []
         self.test_set1 = []
-
-        # 为每个客户端分配 labels_per_client 个类别
         class_pool = list(range(num_classes))
         client_class_map = []
         for _ in range(num_clients):
             chosen = np.random.choice(class_pool, labels_per_client, replace=False)
             client_class_map.append(set(chosen))
-
-        # 初始化每个客户端拥有的标签集合（用于统计）
         client_label_sets = [set() for _ in range(num_clients)]
-
-        # 分配样本
         client_indices = [[] for _ in range(num_clients)]
         for class_id, idx in enumerate(class_indices):
             idx = idx[torch.randperm(idx.size(0))]
-
             owners = [i for i in range(num_clients) if class_id in client_class_map[i]]
             if len(owners) == 0:
                 continue
-
             split_sizes = [len(idx) // len(owners)] * len(owners)
             split_sizes[-1] += len(idx) - sum(split_sizes)
             splits = torch.split(idx, split_sizes)
-
             for i, owner in enumerate(owners):
                 client_indices[owner].extend(splits[i].tolist())
-                client_label_sets[owner].add(class_id)  # 记录该客户端拥有的标签
-
-        # 构造数据
+                client_label_sets[owner].add(class_id) 
         for i in range(num_clients):
             client_data = torch.tensor(client_indices[i], dtype=torch.long).to(DEVICE)
             if len(client_data) < batch_size:
                 print(f"[Warning] Client {i} has too few samples ({len(client_data)})")
                 continue
-
             client_data = client_data[torch.randperm(client_data.size(0))]
             usable_len = (len(client_data) // batch_size) * batch_size
             client_data = client_data[:usable_len]
-
             if usable_len == 0:
                 print(f"[Skip] Client {i} has no full batch after filtering")
                 continue
-
             batches = client_data.view(-1, batch_size)
             num_batches = batches.size(0)
             if num_batches < 2:
                 print(f"[Skip] Client {i} has <2 batches, skipping")
                 continue
-
             split_point = num_batches // 2
             self.train_set.append(batches[:split_point])
             self.test_set1.append(batches[split_point:])
-
-        # 合并测试集
         if len(self.test_set1) > 0:
             self.test_set = torch.cat(self.test_set1, dim=0).to(DEVICE)
         else:
             self.test_set = torch.empty(0, batch_size).to(DEVICE)
-
-        # 输出每个客户端拥有的标签种类
         print("\n=== Client Label Summary ===")
         for i, label_set in enumerate(client_label_sets):
             print(f"Client {i}: Labels = {sorted(label_set)} (count = {len(label_set)})")
-
         print(f"\nPartition complete: {len(self.train_set)} clients with training data.")
         print(self.train_set)
 
