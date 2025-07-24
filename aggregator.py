@@ -112,41 +112,26 @@ class RobustMechanism:
         self.agr_model = global_model
 
     def contribution_aware(self, input_gradients: torch.Tensor, validation_loader, malicious_user: int = 0):
-        """
-        按参与者对全局模型准确率的贡献程度加权聚合
-        :param input_gradients: 所有参与者的梯度
-        :param validation_loader: 用于评估的全局验证集加载器
-        :param malicious_user: 恶意参与者的数量（未使用）
-        :return: 加权聚合后的全局梯度
-        """
         ratio=0.9
         if not hasattr(self, "last_aggregated_gradient"):
-            # 初始化上一个 epoch 的梯度为全局平均梯度
             self.last_aggregated_gradient = torch.mean(input_gradients, dim=0)
         print("********************************")
         print(self.last_aggregated_gradient)
         print("********************************")
 
-        base_model = self.agr_model # 当前全局模型
+        base_model = self.agr_model
         print(base_model)
-        base_model_grad = torch.mean(input_gradients, dim=0)  # 计算全局平均梯度
-
-        # 测试基准准确率
+        base_model_grad = torch.mean(input_gradients, dim=0)  
 
         test_loss, base_acc = base_model.test_outcome()
         #test_loss, base_acc = base_model.test_outcome_vae(0.035)
         #test_loss, base_acc = base_model.test_outcome_ratio(0.2)
         print(f"Base acc: ={base_acc:.4f}")
-
-        # 计算每个参与者的贡献
         contributions = []
         for i, grad in enumerate(input_gradients):
-            # 创建一个临时模型，应用参与者的梯度
+
             temp_model = copy.deepcopy(base_model)
             self.apply_gradient(temp_model, grad)
-
-            # 测试临时模型的准确率
-
             test_loss, new_acc = temp_model.test_outcome()
             #test_loss, new_acc = temp_model.test_outcome_vae(0.035)
             #test_loss, new_acc = temp_model.test_outcome_ratio(0.2)
@@ -158,10 +143,7 @@ class RobustMechanism:
         print("contributions is ")
         print(contributions)
 
-        # 只保留正贡献的参与者
         positive_contributions = torch.where(contributions > 0, contributions, torch.zeros_like(contributions))
-
-        # 如果所有贡献都是非正，直接返回全局平均梯度
         if torch.sum(positive_contributions) == 0:
             print("No positive contributions detected. Using naive average.")
             _, indices = torch.topk(contributions, 1, largest=False)
@@ -182,16 +164,13 @@ class RobustMechanism:
             #print(self.last_aggregated_gradient)
             return self.last_aggregated_gradient-0.11*aggregated_gradient
 
-        # 对正贡献的参与者进行归一化
         weights = positive_contributions / torch.sum(positive_contributions)
         print("weight is ")
         print(weights)
 
-        # 加权聚合梯度
         weighted_gradients = input_gradients * weights[:, None]
         aggregated_gradient = torch.sum(weighted_gradients, dim=0)
 
-        # 保存当前聚合的梯度
         self.last_aggregated_gradient = aggregated_gradient
         print("new gradient")
         print(self.last_aggregated_gradient)
@@ -201,11 +180,7 @@ class RobustMechanism:
 
 
     def apply_gradient(self, glo_model, gradient):
-        """
-        将梯度应用到模型
-        :param model: 模型
-        :param gradient: 梯度
-        """
+
         start_idx = 0
         for param in glo_model.model.parameters():
             length = param.numel()
