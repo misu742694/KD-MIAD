@@ -1,2 +1,2 @@
 # KD-MIAD
-This repository is currently under preparation. We will release the complete source code as soon as possible.
+This repository is currently under preparation. We will provide a complete code description as soon as possible.
