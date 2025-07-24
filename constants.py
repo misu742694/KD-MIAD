@@ -18,13 +18,7 @@ INIT_MODE = PYTORCH_INIT
 BATCH_TRAINING = True
 
 # Data set related
-PURCHASE100 = "Purchase100"
-CIFAR_10 = "Pre-trained-CIFAR-10"
-LOCATION30 = "Location30"
 TEXAS100 = "Texas100"
-PURCHASE100_PATH = "./datasets-master/dataset_purchase/dataset_purchase"
-CIFAR_10_PATH = "./datasets-master/cifar10_pretrained/cifar100_resnet20_"
-LOCATION30_PATH = "./datasets-master/bangkok"
 TEXAS100_PATH = "./datasets-master/texas100.npz"
 DEFAULT_SET = TEXAS100
 
