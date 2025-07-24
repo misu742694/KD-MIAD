@@ -25,11 +25,11 @@ class Organizer():
         return self.bar_recorder > bar
 
     def set_random_seed(self, seed = GLOBAL_SEED):
-        random.seed(seed)#random.seed(9)生成一个固定的随机数
+        random.seed(seed)
         np.random.seed(seed)
         #print(seed)
-        os.environ['PYTHONHASHSEED'] = str(seed)#控制随机性
-        torch.manual_seed(seed)#设置种子的用意是一旦固定种子，后面依次生成的随机数其实都是固定的。每次重新运行都是固定的
+        os.environ['PYTHONHASHSEED'] = str(seed)
+        torch.manual_seed(seed)
         if torch.cuda.is_available():
             torch.cuda.manual_seed_all(seed)
 
@@ -76,12 +76,11 @@ class Organizer():
     def federated_training_basic(self, record_model=False, record_process=True):
         """
         A code sample to start a federated learning setting using this package
-        使用此包启动联合学习设置的代码示例
         """
-        # Initialize data frame for recording purpose为记录目的初始化数据帧
+        # Initialize data frame for recording purpose
         acc_recorder = pd.DataFrame(columns=["epoch", "participant", "loss", "accuracy"])
         param_recorder = pd.DataFrame()
-        # Initialize aggregator with given parameter size使用给定的参数大小初始化聚合器
+        # Initialize aggregator with given parameter size
         aggregator = Aggregator(self.target.get_flatten_parameters(), robust_mechanism=DEFAULT_AGR)
         # Initialize global model
         global_model = FederatedModel(self.reader, aggregator)
@@ -197,7 +196,6 @@ class Organizer():
         result_list = []
         for epoch in range(50):
             count=0
-            # 获取全局模型的参数
             global_parameters = global_model.get_flatten_parameters()
             if epoch > 15 and epoch % 3 == 0:
                 print(epoch)
@@ -219,22 +217,12 @@ class Organizer():
                     print("Epoch {} Participant {}, loss={}, acc={}".format(epoch + 1, i, loss, acc))
 
             else:
-
-                # 遍历每个参与者
                 for i in range(NUMBER_OF_PARTICIPANTS):
-
-                    # 将全局模型参数加载到参与者的教师模型
                     participants[i].collect_parameters(global_parameters)
                     participants[i].share_gradient()
-
-                    # 测试参与者模型性能
                     loss, acc = participants[i].test_outcome()
                     print(f"Epoch {epoch + 1}, Participant {i}, Loss: {loss}, Accuracy: {acc}")
-
-            # 全局模型聚合更新
             global_model.apply_gradient()
-
-            # 测试全局模型性能
             loss, acc = global_model.test_outcome()
 
             with torch.no_grad():
@@ -308,7 +296,6 @@ class Organizer():
 
         for epoch in range(MAX_EPOCH):
             epoch_start = time.time()
-            # 获取全局模型的参数
             global_parameters = global_model.get_flatten_parameters()
 
 
@@ -319,33 +306,22 @@ class Organizer():
                     print("done")
                 else:
                     torch.save(global_model.model.state_dict(),"./save/"+DEFAULT_SET+"/NONE/agg1/"+str(epoch)+".pth")
-
-            # 遍历每个参与者
             for i in range(NUMBER_OF_PARTICIPANTS):
                 participant_start = time.time()
-                # 将全局模型参数加载到参与者的教师模型
                 participants[i].collect_parameters(global_parameters)
-                # 微调教师模型
                 #participants[i].train_teacher(epochs=1, global_params=global_params)
-                # 训练学生模型（基于教师模型的输出）
                 #participants[i].train_student(distill_epochs=3)
-
-                # 共享学生模型的梯度
                 participants[i].share_gradient()
-
-                # 测试参与者模型性能
                 loss, acc = participants[i].test_outcome()
                 print(f"Epoch {epoch + 1}, Participant {i}, Loss: {loss}, Accuracy: {acc}")
                 participant_end = time.time()
                 per_participant_time.append((epoch, i, participant_end - participant_start))
 
             agg_start = time.time()
-            # 全局模型聚合更新
             global_model.apply_gradient()
             agg_end = time.time()
             agg_time = agg_end - agg_start
 
-            # 测试全局模型性能
             loss, acc = global_model.test_outcome()
             loss_list.append(loss)
             acc_list.append(acc)
@@ -360,7 +336,6 @@ class Organizer():
             print(
                 f"Global Epoch {epoch + 1}, Loss: {loss}, Accuracy: {acc}, Aggregation Time: {agg_time:.4f}s, Epoch Time: {epoch_duration:.4f}s")
 
-        # 训练完成后保存最终目标模型
         torch.save(global_model.model.state_dict(), "./save/" + DEFAULT_SET + "/NONE/final/final_model.pth")
         print("Final global model saved.")
 
@@ -376,7 +351,6 @@ class Organizer():
         print(f"Total training time: {total_time:.4f} seconds")
         print(f"Average epoch time: {total_training_time / MAX_EPOCH:.4f} seconds")
 
-        # 可选输出：每个客户端平均训练时间
         per_client_total = {i: 0.0 for i in range(NUMBER_OF_PARTICIPANTS)}
         for epoch_id, client_id, t in per_participant_time:
             per_client_total[client_id] += t
