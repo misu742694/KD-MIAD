@@ -119,33 +119,18 @@ def train_vae(model, train_loader, epochs=10, lr=1e-3,save_dir='generated_data',
         print(f"Epoch {epoch + 1}/{epochs}, Loss: {train_loss / len(train_loader.dataset):.4f}, Time: {epoch_duration:.4f} seconds")
     torch.save(model.state_dict(), os.path.join(save_dir, 'vaemodel_'+DEFAULT_SET+'.pth'))
     print(f"Model saved to {save_dir}")
-
-
-
-
-
-
 def save_generated_data(fake_data, fake_labels, save_dir='generated_data'):
-
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-
     torch.save(fake_data, os.path.join(save_dir, 'fake_data_'+DEFAULT_SET+'.pth'))
     integer_labels = torch.argmax(fake_labels, dim=1)
     torch.save(integer_labels, os.path.join(save_dir, 'fake_labels_'+DEFAULT_SET+'.pth'))
-
     print(len(fake_data))
-
     fake_dataset = TensorDataset(fake_data, integer_labels)
     fake_data_loader = DataLoader(fake_dataset, batch_size=64, shuffle=True)
     torch.save(fake_data_loader, os.path.join(save_dir, 'fake_data_loader_'+DEFAULT_SET+'.pth'))
-
-
-
 def main():
     num_batches=1
-
-
     if DEFAULT_SET == "Purchase100":
         input_dim = 600
         latent_dim = 20
@@ -159,9 +144,6 @@ def main():
         data_frame.drop(LABEL_COL, inplace=True, axis=1)
         # extract the data
         data = torch.tensor(data_frame.to_numpy(), dtype=torch.float).to(DEVICE)
-
-
-
     elif DEFAULT_SET == "Location30":
         input_dim = 446
         latent_dim = 20
@@ -175,41 +157,24 @@ def main():
         data_frame.drop(label_column, inplace=True, axis=1)
         # extract the data
         data = torch.tensor(data_frame.to_numpy(), dtype=torch.float).to(DEVICE)
-
-
     labels_onehot = torch.zeros((labels.size(0), num_classes), dtype=torch.float).to(DEVICE)
     labels_onehot.scatter_(1, labels.view(-1, 1), 1)
     print(labels_onehot.shape)
     print(labels_onehot[0])
-
-    # 创建数据集和 DataLoader
     dataset = TensorDataset(data, labels_onehot)
     train_loader = DataLoader(dataset, batch_size=64, shuffle=True)
     print(train_loader)
     print(len(train_loader))
-
-
-
-
     #train_loader = DataLoader(TensorDataset(dataset), batch_size=64, shuffle=True)
-
-
     vae_model = VAE(input_dim, latent_dim, num_classes)
-
-
     #train_vae(vae_model, train_loader, epochs=100, lr=1e-4, device=DEVICE)
-
     save_dir = 'generated_data'
-
     vae_model.load_state_dict(torch.load(os.path.join(save_dir, 'vaemodel_'+DEFAULT_SET+'.pth')))
     vae_model=vae_model.to(DEVICE)
-
-
     #fake_data, fake_labels = generate_fake_data(vae_model, num_classes=num_classes, batch_size=BATCH_SIZE,latent_dim=latent_dim, device=DEVICE)
     all_fake_data = []
     all_fake_labels = []
-
-    for i in range(num_batches):#32是100%
+    for i in range(num_batches):
         starttime=time.time()
         print(i)
         fake_data, fake_labels = generate_fake_data(vae_model, num_classes=num_classes, batch_size=10,
@@ -218,15 +183,9 @@ def main():
         all_fake_data.append(fake_data)
         all_fake_labels.append(fake_labels)
     print(endtime-starttime)
-
-
     all_fake_data = torch.cat(all_fake_data, dim=0)
     all_fake_labels = torch.cat(all_fake_labels, dim=0)
-
-
     save_generated_data(all_fake_data, all_fake_labels, save_dir='generated_data')
-
-
 if __name__ == "__main__":
 
     main()
