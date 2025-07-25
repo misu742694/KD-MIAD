@@ -175,37 +175,7 @@ def main():
         data_frame.drop(label_column, inplace=True, axis=1)
         # extract the data
         data = torch.tensor(data_frame.to_numpy(), dtype=torch.float).to(DEVICE)
-    elif DEFAULT_SET == CIFAR_10:
-        input_dim = 64
-        latent_dim = 8
-        num_classes = 10
 
-        samples = np.vstack(
-            [np.genfromtxt(CIFAR_10_PATH + "train{}.csv".format(x), delimiter=',') for x in range(4)]
-        )
-        np.random.seed(42)
-
-        num_samples = samples.shape[0]
-        indices = np.random.choice(num_samples, int(0.1 * num_samples), replace=False)
-        samples_selected = samples[indices]
-
-        data = torch.tensor(samples_selected[:, :-1], dtype=torch.float).to(DEVICE)
-        labels = torch.tensor(samples_selected[:, -1], dtype=torch.int64).to(DEVICE)
-        labels=labels.unsqueeze(-1)
-        print(data.shape)
-        print(labels.shape)
-        print(labels[0])
-    elif DEFAULT_SET == TEXAS100:
-        input_dim = 6169
-        latent_dim = 50
-        num_classes = 100
-        path = TEXAS100_PATH
-        data = np.load(path)
-        labels = data['labels']
-        data = data['features']
-        labels = np.argmax(labels, axis=1)
-        labels = torch.tensor(labels, dtype=torch.int64).to(DEVICE)
-        data = torch.tensor(data, dtype=torch.float).to(DEVICE)
 
     labels_onehot = torch.zeros((labels.size(0), num_classes), dtype=torch.float).to(DEVICE)
     labels_onehot.scatter_(1, labels.view(-1, 1), 1)
