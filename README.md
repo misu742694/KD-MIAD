@@ -17,7 +17,7 @@ python fl_basic.py
 To regenerate synthetic data using an existing CVAE checkpoint:
 
 ```bash
-python train-vae.py --mode generate --samples-per-class 200 --num-batches 1
+python train-vae.py --mode generate --samples-per-class 100 --num-batches 1
 ```
 
 Before running, configure the dataset and its path in `constants.py` and ensure the required directories exist.
