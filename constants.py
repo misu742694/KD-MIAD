@@ -10,7 +10,7 @@ TIME_STAMP = now.strftime("%Y_%m_%d_%H")
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # General hyper parameters
-MAX_EPOCH =100
+MAX_EPOCH =50
 TRAIN_EPOCH = 100
 BATCH_SIZE = 64
 RESERVED_SAMPLE = 0
@@ -18,9 +18,15 @@ INIT_MODE = PYTORCH_INIT
 BATCH_TRAINING = True
 
 # Data set related
+PURCHASE100 = "Purchase100"
+CIFAR_10 = "Pre-trained CIFAR-10"
+LOCATION30 = "Location30"
 TEXAS100 = "Texas100"
+PURCHASE100_PATH = "./datasets-master/dataset_purchase/dataset_purchase"
+CIFAR_10_PATH = "./datasets-master/cifar10_pretrained/cifar100_resnet20_"
+LOCATION30_PATH = "./datasets-master/bangkok"
 TEXAS100_PATH = "./datasets-master/texas100.npz"
-DEFAULT_SET = TEXAS100
+DEFAULT_SET =  PURCHASE100
 
 
 MENTRLOSS_NORMAL=0.4605
@@ -40,7 +46,7 @@ DIRICHLET="dirichlet"
 DIRICHLET_ALPHA=0.5
 LABEL_PARTITION=None
 
-DEFAULT_DISTRIBUTION = DIRICHLET
+DEFAULT_DISTRIBUTION = None
 
 # Robust AGR
 TRMEAN = "Trimmed Mean"
@@ -50,10 +56,10 @@ FANG = "Fang"
 NONE = "None"
 FL_TRUST="Fl-trust"
 CONTRIBUTION_AWARE="CONTRIBUTION_AWARE"
-DEFAULT_AGR = FANG
+DEFAULT_AGR = CONTRIBUTION_AWARE
 
 # Federated learning parameters
-NUMBER_OF_PARTICIPANTS = 10
+NUMBER_OF_PARTICIPANTS = 5
 PARAMETER_EXCHANGE_RATE = 1
 PARAMETER_SAMPLE_THRESHOLD = 1
 GRADIENT_EXCHANGE_RATE = 1
