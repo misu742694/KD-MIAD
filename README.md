@@ -31,19 +31,7 @@ Before running, configure the dataset and its path in `constants.py` and ensure 
 | `organizer.py` | Coordinates clients, training rounds, aggregation, evaluation, and model saving. |
 | `models.py` | Defines dataset-specific models, teacher/student training, distillation, and client behavior. |
 | `aggregator.py` | Collects client updates and implements aggregation strategies, including contribution-aware aggregation. |
-| `data_reader.py` | Loads datasets and partitions samples into client training and test sets. |
-| `constants.py` | Stores dataset paths, training hyperparameters, aggregation settings, and other configuration. |
+| `data_reader.py` | Loads datasets into client training and test sets. |
+| `constants.py` | Stores training hyperparameters, aggregation settings, and other configuration. |
 
-## Configuration
 
-Edit `constants.py` to select a dataset (`DEFAULT_SET`), set its path, and adjust parameters such as `NUMBER_OF_PARTICIPANTS`, `MAX_EPOCH`, `BATCH_SIZE`, and `DEFAULT_AGR`.
-
-The current CVAE training script supports **Purchase100** and **Location30**.
-
-## Outputs
-
-- `generated_data/`: CVAE checkpoints and synthetic data (`fake_data_loader_<dataset>.pth`).
-- `save/<dataset>/NONE/`: intermediate and final global model checkpoints.
-- `save_npy/`: saved client membership indices used by the experiment.
-
-The federated training script expects the synthetic data loader generated in the first step.
