@@ -25,6 +25,15 @@ class DataReader:
             data_frame.drop(label_column, inplace=True, axis=1)
             # extract the data
             self.data = torch.tensor(data_frame.to_numpy(), dtype=torch.float).to(DEVICE)
+        elif data_set == LOCATION30:
+            path = LOCATION30_PATH
+            data_frame = pd.read_csv(path, header=None)
+            # extract the label
+            self.labels = torch.tensor(data_frame[label_column].to_numpy(), dtype=torch.int64).to(DEVICE)
+            self.labels -= 1
+            data_frame.drop(label_column, inplace=True, axis=1)
+            # extract the data
+            self.data = torch.tensor(data_frame.to_numpy(), dtype=torch.float).to(DEVICE)
 
         elif data_set == TEXAS100:
             path = TEXAS100_PATH
