@@ -673,14 +673,14 @@ class TargetModel:
             for i in range(1):
                 self.attack_epoch(base_instance,base_label,target_instance)
         else:
-            for i in range(10):
-                self.normal_epoch()
-            #self.normal_epoch_with_MIST1()
-            #self.train_teacher_noentroy()
-            #self.train_teacher()
-            #self.model=self.teacher_model
-            #self.train_student()
-            #self.train_student_realdata()
+            for i in range(1):
+                self.train_teacher()
+                self.train_student()
+                #self.normal_epoch()
+                #self.normal_epoch_with_MIST1()
+                #self.train_teacher_noentroy()
+                #self.model=self.teacher_model
+                #self.train_student_realdata()
         gradient = self.get_flatten_parameters() - cache.to(DEVICE)
         if not apply_gradient:
             self.load_parameters(cache)
