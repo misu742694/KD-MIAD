@@ -68,6 +68,110 @@ class VAE(nn.Module):
 
 
 
+def generate_from_pretrained_cvae(
+    samples_per_class=200,
+    num_batches=1,
+    save_dir="generated_data"
+):
+
+    if DEFAULT_SET == "Purchase100":
+        input_dim = 600
+        latent_dim = 20
+        num_classes = 100
+
+    elif DEFAULT_SET == "Location30":
+        input_dim = 446
+        latent_dim = 20
+        num_classes = 30
+
+    else:
+        raise ValueError(
+            f"Unsupported dataset: {DEFAULT_SET}"
+        )
+
+    if samples_per_class <= 0 or num_batches <= 0:
+        raise ValueError(
+            "samples_per_class and num_batches must be positive"
+        )
+
+    model_path = os.path.join(
+        save_dir,
+        "vaemodel_" + DEFAULT_SET + ".pth"
+    )
+
+    if not os.path.isfile(model_path):
+        raise FileNotFoundError(
+            f"CVAE model not found: {model_path}"
+        )
+
+    vae_model = VAE(
+        input_dim=input_dim,
+        latent_dim=latent_dim,
+        num_classes=num_classes
+    ).to(DEVICE)
+
+    state_dict = torch.load(
+        model_path,
+        map_location=DEVICE,
+        weights_only=True
+    )
+
+    vae_model.load_state_dict(state_dict)
+    vae_model.eval()
+
+    print(f"Loaded pretrained CVAE: {model_path}")
+
+    all_fake_data = []
+    all_fake_labels = []
+
+    with torch.no_grad():
+
+        for i in range(num_batches):
+            fake_data, fake_labels = generate_fake_data(
+                model=vae_model,
+                num_classes=num_classes,
+                batch_size=samples_per_class,
+                latent_dim=latent_dim,
+                device=DEVICE
+            )
+
+            all_fake_data.append(fake_data.cpu())
+            all_fake_labels.append(fake_labels.cpu())
+
+            print(
+                f"Generated batch {i + 1}/{num_batches}"
+            )
+
+    all_fake_data = torch.cat(
+        all_fake_data,
+        dim=0
+    )
+
+    all_fake_labels = torch.cat(
+        all_fake_labels,
+        dim=0
+    )
+
+    save_generated_data(
+        all_fake_data,
+        all_fake_labels,
+        save_dir=save_dir
+    )
+
+    print("====================================")
+    print("Dataset:", DEFAULT_SET)
+    print("Samples per class:", samples_per_class * num_batches)
+    print("Total fake samples:", len(all_fake_data))
+    print("Fake data shape:", all_fake_data.shape)
+    print("Fake labels shape:", all_fake_labels.shape)
+    print("Generation completed!")
+    print("====================================")
+
+    return all_fake_data, all_fake_labels
+
+
+
+
 def generate_fake_data(model, num_classes, batch_size=64, latent_dim=20, device='cuda'):
     model.eval()
     all_fake_data = []
@@ -165,9 +269,11 @@ def main():
     train_loader = DataLoader(dataset, batch_size=64, shuffle=True)
     print(train_loader)
     print(len(train_loader))
+    
     #train_loader = DataLoader(TensorDataset(dataset), batch_size=64, shuffle=True)
     vae_model = VAE(input_dim, latent_dim, num_classes)
-    #train_vae(vae_model, train_loader, epochs=100, lr=1e-4, device=DEVICE)
+    
+    train_vae(vae_model, train_loader, epochs=100, lr=1e-4, device=DEVICE)
     save_dir = 'generated_data'
     vae_model.load_state_dict(torch.load(os.path.join(save_dir, 'vaemodel_'+DEFAULT_SET+'.pth')))
     vae_model=vae_model.to(DEVICE)
@@ -177,7 +283,7 @@ def main():
     for i in range(num_batches):
         starttime=time.time()
         print(i)
-        fake_data, fake_labels = generate_fake_data(vae_model, num_classes=num_classes, batch_size=10,
+        fake_data, fake_labels = generate_fake_data(vae_model, num_classes=num_classes, batch_size=200,
                                                     latent_dim=latent_dim, device=DEVICE)
         endtime=time.time()
         all_fake_data.append(fake_data)
@@ -188,4 +294,36 @@ def main():
     save_generated_data(all_fake_data, all_fake_labels, save_dir='generated_data')
 if __name__ == "__main__":
 
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "--mode",
+        type=str,
+        choices=["train", "generate"],
+        default="train"
+    )
+
+    parser.add_argument(
+        "--samples-per-class",
+        type=int,
+        default=200
+    )
+
+    parser.add_argument(
+        "--num-batches",
+        type=int,
+        default=1
+    )
+
+    args = parser.parse_args()
+
+    if args.mode == "train":
+        main()
+
+    elif args.mode == "generate":
+        generate_from_pretrained_cvae(
+            samples_per_class=args.samples_per_class,
+            num_batches=args.num_batches
+        )
