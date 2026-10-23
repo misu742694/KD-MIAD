@@ -115,12 +115,12 @@ class RobustMechanism:
         ratio=0.9
         if not hasattr(self, "last_aggregated_gradient"):
             self.last_aggregated_gradient = torch.mean(input_gradients, dim=0)
-        print("********************************")
-        print(self.last_aggregated_gradient)
-        print("********************************")
+        #print("********************************")
+        #print(self.last_aggregated_gradient)
+        #print("********************************")
 
         base_model = self.agr_model
-        print(base_model)
+        #print(base_model)
         base_model_grad = torch.mean(input_gradients, dim=0)  
 
         test_loss, base_acc = base_model.test_outcome()
@@ -146,7 +146,7 @@ class RobustMechanism:
         positive_contributions = torch.where(contributions > 0, contributions, torch.zeros_like(contributions))
         if torch.sum(positive_contributions) == 0:
             print("No positive contributions detected. Using naive average.")
-            _, indices = torch.topk(contributions, 1, largest=False)
+            _, indices = torch.topk(contributions, 3, largest=False)
             print(indices)
             mask = torch.ones_like(contributions, dtype=torch.bool)
             mask[indices] = False
@@ -322,4 +322,3 @@ class RobustMechanism:
         grad =(grad.transpose(0, 1)*scores).transpose(0,1)
         grad =torch.sum(grad, dim=0)/scores.sum()
         return grad
-
